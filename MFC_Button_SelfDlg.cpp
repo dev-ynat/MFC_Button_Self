@@ -72,8 +72,8 @@ BEGIN_MESSAGE_MAP(CMFCButtonSelfDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_COMMAND(IDD_MFC_BUTTON_SELF_DIALOG, &CMFCButtonSelfDlg::OnIddMfcButtonSelfDialog)
-	ON_BN_CLICKED(IDC_BTN_DLG, &CMFCButtonSelfDlg::OnBnClickedBtnDlg)
 	ON_WM_DESTROY()
+	ON_BN_CLICKED(IDC_BTN_TEST, &CMFCButtonSelfDlg::OnBnClickedBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -109,12 +109,21 @@ BOOL CMFCButtonSelfDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
+	MoveWindow(0, 0, 1280, 960);
 	m_pDlgImage = new CDlgImage;
 	m_pDlgImage->Create(IDD_CDlgImage, this);
+	m_pDlgImage->ShowWindow(SW_SHOW);
+	m_pDlgImage->MoveWindow(0, 0, 640, 480);
 	// UINT nIDTemplate ID는 리소스의 Dlg를 가져오면 된다.
 	// CWnd* pParentWnd 윈도우는 this. 현재의 다이아로그를 사용할 것이다
 	// 이 포인터를 사용해야지 ( m_pDlgImage ) 자식 다이아로그에서 부모 다이아로그로 접근이 가능하다.
 	
+	m_pDlgImgResult = new CDlgImage;
+	m_pDlgImgResult->Create(IDD_CDlgImage, this);
+	m_pDlgImgResult->ShowWindow(SW_SHOW);
+	m_pDlgImgResult->MoveWindow(640, 0, 640, 480);
+
+
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -176,20 +185,14 @@ void CMFCButtonSelfDlg::OnIddMfcButtonSelfDialog()
 }
 
 
-void CMFCButtonSelfDlg::OnBnClickedBtnDlg()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	m_pDlgImage->ShowWindow(SW_SHOW);
-}
-
-
 
 
 
 void CMFCButtonSelfDlg::OnDestroy()
 {
 	CDialogEx::OnDestroy();
-	delete m_pDlgImage;
+	if(m_pDlgImage) delete m_pDlgImage;
+	if(m_pDlgImgResult) delete m_pDlgImgResult;
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 }
 
@@ -197,4 +200,39 @@ void CMFCButtonSelfDlg::callFunc(int n)
 {
 	//int nData = n;
 	std::cout << n << std::endl;
+}
+
+void CMFCButtonSelfDlg::OnBnClickedBtnTest()
+{
+	unsigned char* fm = (unsigned char*)m_pDlgImage->m_Image.GetBits();
+	// GetBits는 void * 이다.
+	// void * 는 형태가 정해져 있지 않은 포인터로, 앞에 어떤 형태로 받을지에 대한 설명이 필요하다
+	int nWitdh = m_pDlgImage->m_Image.GetWidth();
+	int nHeight = m_pDlgImage->m_Image.GetHeight();
+	int nPitch = m_pDlgImage->m_Image.GetPitch();
+	memset(fm, 0xff, nWitdh * nHeight);
+
+	int nRand = rand() % 100;
+	for (int k = 0; k < nRand; k++) {
+		int x = rand() % nWitdh;
+		int y = rand() % nHeight;
+		fm[y * nPitch + x] = 0;
+	}
+	int nIndex = 0;
+	for (int i = 0; i < nWitdh; i++) {
+		for (int j = 0; j < nHeight; j++) {
+			if (fm[j * nPitch + i] == 0) {
+				if (m_pDlgImgResult->m_nDataCount < 100) {
+					m_pDlgImgResult[nIndex].m_ptData[nIndex].x = i;
+					m_pDlgImgResult[nIndex].m_ptData[nIndex].y = i;
+					m_pDlgImgResult->m_nDataCount = ++nIndex;
+				}
+			} 
+		}
+	}
+	
+	//memset(fm, 0, 640 * 480);
+	// 화면을 윈도우 창 밖으로 보내야지 갱신되는건 화면 업데이트가 없었기 때문이다.
+	m_pDlgImage->Invalidate();
+	m_pDlgImgResult->Invalidate();
 }
